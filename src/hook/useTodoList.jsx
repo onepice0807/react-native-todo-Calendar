@@ -1,30 +1,30 @@
 import dayjs from 'dayjs';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const mockupTodo = [
-  {
-    id: 1,
-    content: '공부하기',
-    date: dayjs(),
-    isDone: false,
-  },
-  {
-    id: 2,
-    content: '영화보기',
-    date: dayjs(),
-    isDone: true,
-  },
-  {
-    id: 3,
-    content: '게임하기',
-    date: dayjs(),
-    isDone: false,
-  },
-];
+export const TODO_WIDTH = 260;
 
 export const useTodoList = (selectedDate) => {
-  const [todoList, setTodoList] = useState(mockupTodo);
+  const [todoList, setTodoList] = useState([]);
   const [todoInput, setTodoInput] = useState('');
+  const TODOLIST_KEY = 'myTodoList';
+
+  useEffect(() => {
+    init();
+  }, []);
+  const init = async () => {
+    // AsyncStorage에서 저장된 할일 목록을 불러와 set
+    const result = await AsyncStorage.getItem(TODOLIST_KEY);
+    if (result) {
+      const newTodoList = JSON.parse(result);
+      setTodoList(newTodoList);
+    }
+  };
+
+  const saveTodoList = (newTodoList) => {
+    AsyncStorage.setItem(TODOLIST_KEY, JSON.stringify(newTodoList));
+    setTodoList(newTodoList);
+  };
 
   const addTodo = (todo) => {
     // create 작업
@@ -39,12 +39,12 @@ export const useTodoList = (selectedDate) => {
         isDone: false,
       },
     ];
-    setTodoList(newTodoList);
+    saveTodoList(newTodoList);
   };
 
   const removeTodo = (targetId) => {
     const newTodoList = todoList.filter((todo) => todo.id !== targetId);
-    setTodoList(newTodoList);
+    saveTodoList(newTodoList);
   };
 
   const modifyTodo = (targetId) => {
@@ -55,8 +55,15 @@ export const useTodoList = (selectedDate) => {
         isDone: !todo.isDone,
       };
     });
-    setTodoList(newTodoList);
+    saveTodoList(newTodoList);
   };
+
+  const resetInput = () => setTodoInput('');
+
+  const selectedDateTodoList = todoList.filter((todo) => {
+    const isSameDate = dayjs(todo.date).isSame(selectedDate, 'date');
+    return isSameDate;
+  });
 
   return {
     todoList,
@@ -66,5 +73,7 @@ export const useTodoList = (selectedDate) => {
     addTodo,
     removeTodo,
     modifyTodo,
+    resetInput,
+    selectedDateTodoList,
   };
 };
